@@ -1,21 +1,24 @@
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Map;
+import java.util.HashMap;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+
 import java.lang.reflect.Type;
-import java.util.Map;
-import java.util.HashMap;
+
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+
 
 
 public class Journal {
-    List<JournalEntry> journal = new ArrayList<>();
+    Map<Integer, JournalEntry> journal;
     Scanner scanny = new Scanner(System.in);
     int nextId = 0;
 
@@ -24,43 +27,31 @@ public class Journal {
     private static final String FILE_NAME = "journal.json";
 
     public Journal() {
-        if (journal.isEmpty()) {
-            nextId = 1;
-        } else {
-           int largestId = 0;
-            for (JournalEntry entry : journal) {
-                int entryId = entry.getId();
-                largestId = Math.max(largestId, entryId);
-            }
-            nextId = largestId + 1;
-        }
+        journal = new HashMap<>();
+        nextId = 1;
     }
 
     public void addJournalEntry(String title, String content) {
         JournalEntry entry = new JournalEntry(nextId, title, content);
-        journal.add(entry);
+        journal.put(nextId, entry);
         nextId++;
-        System.out.println("Entry added.");
+        
     }
 
     public String getJournalEntry(int id) {
-        for (JournalEntry e : journal) {
-            if (e.getId() == id) {
-                return e.toString();
-            } 
-        }
+        JournalEntry entry = journal.get(id);
+        System.out.println(entry.toString());
         return "Invalid ID.";
     }
 
     public void deleteJournalEntry(int id) {
         journal.remove(id);
-        System.out.println("Entry deleted.");
     }
 
     public String getEntries() {
         System.out.println("All entries:");
         String entries = "";
-        for (JournalEntry entry : journal) {
+        for (JournalEntry entry : journal.values()) {
             entries += entry.toString() + "\n";
         }
         return entries;
@@ -68,49 +59,53 @@ public class Journal {
 
     public void saveToFile() {
 
-        List<Map<String, String>> entriesForJson = new ArrayList<>();
-        for (JournalEntry e : journal) {
+        List<Map<String, String>> data = new ArrayList<>();
+        for (JournalEntry e : journal.values()) {
             Map<String, String> map = new HashMap<>();
             map.put("id", String.valueOf(e.getId()));
-            map.put("timestamp", e.getTimestampString());
+            map.put("timestamp", e.getTimestamp().toString());
             map.put("title", e.getTitle());
             map.put("content", e.getContent());
-            entriesForJson.add(map);
+            data.add(map);
         }
 
-        String json = gson.toJson(entriesForJson);
-
         try (FileWriter writer = new FileWriter(FILE_NAME)) {
-            writer.write(json);
+            gson.toJson(data, writer);
         } catch (IOException e) {
-            System.out.println("Unable to save file: " + e.getMessage());
+            System.out.println("Save failed.");
         }
     }
 
     public void loadFromFile() {
         try (FileReader reader = new FileReader(FILE_NAME)) {
+    
             Type listType = new TypeToken<List<Map<String, String>>>(){}.getType();
-            List<Map<String, String>> loadedList = gson.fromJson(reader, listType);
-
+            List<Map<String, String>> loaded = gson.fromJson(reader, listType);
+    
             journal.clear();
             int maxId = 0;
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy' 'HH:mm:ss");
-
-            for (Map<String, String> map : loadedList) {
+    
+            for (Map<String, String> map : loaded) {
                 int id = Integer.parseInt(map.get("id"));
                 String title = map.get("title");
                 String content = map.get("content");
-                LocalDateTime timestamp = LocalDateTime.parse(map.get("timestamp"), formatter);
-
-                journal.add(new JournalEntry(id, title, content, timestamp));
+                LocalDateTime timestamp =
+                    LocalDateTime.parse(map.get("timestamp"));
+    
+                JournalEntry entry = new JournalEntry(id, title, content, timestamp);
+                journal.put(id, entry);
+    
                 if (id > maxId) maxId = id;
             }
-
-            nextId = maxId + 1;  // ensure unique IDs
+    
+            nextId = maxId + 1;
+    
+            System.out.println("Journal loaded.");
+    
         } catch (IOException e) {
-            System.out.println("No existing journal found. Starting fresh.");
+            System.out.println("No journal file found.");
         }
-        }
+    }
 }
 
 
