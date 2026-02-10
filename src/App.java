@@ -6,72 +6,51 @@ import java.io.FileWriter;
 public class App {
     public static void main(String[] args) throws Exception {
 
-        String entries = getJournalEntries();
+        Journal journal = new Journal();
+        journal.loadFromFile();
 
         boolean running = true;
         
         Scanner scanny = new Scanner(System.in);
         while(running) {
             System.out.println("Select one of the options:");
-            System.out.println("1. Create a new entry.          2. View previous entries.           3. Close journal");
+            System.out.println("1. Create a new entry.      2. Delete an entry.         3. View specific entry.         4. View all entries.        5. Close journal.");
             String response = scanny.nextLine();
             int num = Integer.parseInt(response);
             switch(num) {
                 case 1:
-                    entries = newEntry(entries);
-                    System.out.println("Entry added!");
+                    System.out.println("Enter your title: ");
+                    String title = scanny.nextLine();
+                    System.out.println("Enter your content: ");
+                    String content = scanny.nextLine();
+                    journal.addJournalEntry(title, content);
                     break;
                 case 2:
-                    System.out.println(entries);;
+                    System.out.println("Enter the id of the entry you want to delete: ");
+                    int id = scanny.nextInt();
+                    scanny.nextLine();
+                    journal.deleteJournalEntry(id);
                     break;
                 case 3:
+                    System.out.println("Enter the id of the entry you want to view: ");
+                    id = scanny.nextInt();
+                    scanny.nextLine();
+                    System.out.println(journal.getJournalEntry(id));
+                    break;
+                case 4: 
+                System.out.println(journal.getEntries());
+                    break;
+                case 5:
                     running = false;
                     break;
                 default: 
-                    System.out.println("Invalid input. Please enter 1, 2, or 3.");
+                    System.out.println("Invalid input. Please enter 1-5.");
             }
         }
-        closeJournal(entries);
-        System.out.println("Journal closed, exiting program.");
+        journal.saveToFile();
+        System.out.println("Journal closed, exiting program. Bye, bye.");
         scanny.close();
     }
 
-    public static String newEntry(String journal) {
-        Scanner scanny = new Scanner(System.in);
-
-        System.out.println("Type an entry: ");
-        journal += scanny.nextLine() + "\n";
-
-        return journal;
-    }
-
-    public static String getJournalEntries(){
-
-        File journalFile = new File("journal.txt");
-
-        String entries = "";
-
-        if (journalFile.exists()) {
-            try (Scanner readJournal = new Scanner (journalFile)){
-                while (readJournal.hasNext()) {
-                    entries += readJournal.nextLine() + "\n";
-                }
-                System.out.println("Entries loaded.");
-            } catch (FileNotFoundException e){
-                System.out.println("Unable to load entries.");
-            }
-        } else {
-            System.out.println("No journal detected. Creating new one.");
-        }
-
-        return entries;
-    }
-
-    public static void closeJournal(String entries) {
-        try (FileWriter writer = new FileWriter("journal.txt")) {
-            writer.write(entries);
-        } catch (IOException e) {
-            System.out.println("Unable to save file.");
-        }
-    }
+    
 }
